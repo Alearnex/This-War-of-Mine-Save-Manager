@@ -1,0 +1,353 @@
+
+// Please read the README.txt file to understand how to use it
+
+#include <iostream>
+#include <windows.h>
+#include <fstream>
+
+HANDLE output = GetStdHandle(STD_OUTPUT_HANDLE);
+
+using namespace std;
+
+// Global fileList contains the name of all the file that This War OF Mine use to store the save game data
+string fileList[] {"achievements", "achievements.alt", "gamehistory", "gamehistory.alt", "gamelog", "gamelog.alt", "savedgames", "savedgames.alt"};
+
+// Function prototype
+int chooseSlot();
+int printSpace(int);
+int showCredit();
+int loadSavedFile(int);
+int makeBackup(int);
+int createConfigurationFile();
+int deleteOriginalFiles();
+string deleteSlotFile(int);
+string getProgramDirectory();
+string getGameFolderPath();
+
+// Main menu
+int main()
+{
+    cout << "" << endl;
+    createConfigurationFile(); // Create a configuration file if it doesn't exist
+
+    int choice;
+    int choosedSlot;
+
+    SetConsoleTextAttribute(output, FOREGROUND_GREEN|FOREGROUND_INTENSITY); // Set text color green
+    cout << "" << endl;
+    cout << "==================[ T.W.O.M SAVE MANAGER ]==================" << endl;
+    cout << "" << endl;
+    cout << "   1] Load saved file into the game" << endl;
+    cout << "   2] Make backup from the game saves folder " << endl;
+    cout << "   3] Credit and info" << endl;
+    cout << "   4] Quit" << endl;
+    cout << "" << endl;
+    cout << " ==> ";
+    cin >> choice; // Get input
+    cout << "" << endl; // Set text color green
+
+    switch(choice)
+    {
+    case 1: // Load saved file
+        choosedSlot = chooseSlot();
+        loadSavedFile(choosedSlot);
+        break;
+    case 2: // Make backup from the "========[game saves folder
+        choosedSlot = chooseSlot();
+        makeBackup(choosedSlot);
+        break;
+    case 3: // Show credit and info
+        showCredit();
+        break;
+    case 4: // Quit the program
+        cout << "    Quitting the program" << endl;
+        return 0;
+        break;
+    default: // Show error message
+        printSpace(5); // Print some empty space
+        SetConsoleTextAttribute(output,FOREGROUND_RED|FOREGROUND_INTENSITY); // Set text color red
+        cout << "========[ Please choose one of the available options ]========" << endl;
+        main(); // Restart the main
+        break;
+    }
+    return 0;
+}
+
+// Create ,if doesn't exist, a twom-SaveManager.config file that contains the path for the game folder
+int createConfigurationFile()
+{
+    string configPath = getProgramDirectory();
+    configPath += "\\twom-SaveManager.config"; // Create the path o the .config file
+
+    string slotPath = getProgramDirectory();
+    slotPath += "\\Slot"; // Create the slot path
+
+    if(ifstream(configPath.c_str())) // if twom-SaveManager.config file exist open it
+    {
+        SetConsoleTextAttribute(output, FOREGROUND_GREEN|FOREGROUND_INTENSITY); // Set text color green
+        cout << " Configuration file finded!" << endl;
+        return 1;
+    } else { // If twom-SaveManager.config file doesn't exist create one
+        SetConsoleTextAttribute(output, FOREGROUND_RED|FOREGROUND_INTENSITY); // Set text color red
+        cout << "   Cannot find a configuration file, so creating one..." << endl;
+        cout << "" << endl;
+        cout << "   Please enter the path where you have installed the game." << endl;
+        cout << "   Look for this directories: game folder\\Profile\\your profile\\ Saves" << endl;
+        cout << "   Then paste the path here and press enter, a file called twom-SaveManager.config" << endl;
+        cout << "   will be created don't delete it. Warning use \\ between directories." << endl;
+        cout << "" << endl;
+
+        SetConsoleTextAttribute(output, FOREGROUND_GREEN|FOREGROUND_INTENSITY); // Set text color green
+        string gameFolderPath;
+        getline(cin, gameFolderPath); // Get the game folder path ,I have used  getLine to get even white spaces
+        cout << "" << endl;
+        cout << "   The path you typed in is: " << gameFolderPath << endl;
+
+        fstream configFile;
+        configFile.open("twom-SaveManager.config", ios::out); // Create the twom-SaveManager.config file
+        configFile << gameFolderPath << endl; // Write the path that user typed in to the file
+
+        configFile.close(); // Close the file
+
+        // create the slots directory
+        CreateDirectory("Slot 1", 0);
+        CreateDirectory("Slot 2", 0);
+        CreateDirectory("Slot 3", 0);
+        CreateDirectory("Slot 4", 0);
+        CreateDirectory("Slot 5", 0);
+    }
+    return 0;
+}
+
+// This function is used to load the selected save from the slot to the game folder
+int loadSavedFile(int choosedSlot)
+{
+    cout << "" << endl;
+    cout << "    Loading the slot number " << choosedSlot << " into the game..." << endl;
+
+    string slotPath = getProgramDirectory();
+    slotPath += "\\Slot"; // Create the slot path
+
+    deleteOriginalFiles(); // Delete the current files in to the game folder and get the twom-SaveManager.config file path
+
+    switch(choosedSlot) // Select the right path
+    {
+    case 1: // Load slot 1 files in to the game
+        slotPath += " 1";
+        break;
+    case 2: // Load slot 2 files in to the game
+        slotPath += " 2";
+        break;
+    case 3: // Load slot 3 files in to the game
+        slotPath += " 3";
+        break;
+    case 4: // Load slot 4 files in to the game
+        slotPath += " 4";
+        break;
+    case 5: // Load slot 5 files in to the game
+        slotPath += " 5";
+        break;
+    }
+
+    string gameFolderPath = getGameFolderPath(); // Read the game Folder path from the twom-SaveManager.config file
+
+    for(int c = 0; c < 8; c++) // Copy the files in to the game folder
+    {
+        string currentFile = slotPath + "\\" + fileList[c];
+        string destination = gameFolderPath + "\\" + fileList[c];
+        CopyFile(currentFile.c_str(), destination.c_str(), TRUE);
+    }
+
+    cout << "" << endl;
+    cout << "    Slot " << choosedSlot << " loaded!" << endl;
+    return 0;
+}
+
+// This function is used to copy the saved file that are in the game folder to the selected slot
+int makeBackup(int choosedSlot)
+{
+    cout << "" << endl;
+    cout << "    Making backup of the file in the game folder" << endl;
+    cout << "    in to the slot " << choosedSlot << endl;
+
+    string gameFolderPath = getGameFolderPath();
+
+    string slotPath = deleteSlotFile(choosedSlot); // Delete the current content of the selected slot
+
+    for(int c = 0; c < 8; c++) // Copy files from the game folder to the selected slot
+    {
+        string fileToCopy = gameFolderPath + "\\" + fileList[c];
+        string destination = slotPath + "\\" + fileList[c];
+        CopyFile(fileToCopy.c_str(), destination.c_str(), TRUE);
+    }
+
+    cout << "" << endl;
+    cout << "    Backup completed!" << gameFolderPath << endl;
+    return 0;
+}
+
+// This function is used to choose the slot that you are going to operate on
+int chooseSlot()
+{
+    SetConsoleTextAttribute(output,FOREGROUND_GREEN|FOREGROUND_INTENSITY); // Set text color green
+    cout << "" << endl;
+    cout << "   Choose a slot..." << endl;
+    cout << "" << endl;
+    cout << "   1] Slot 1" << endl;
+    cout << "   2] Slot 2" << endl;
+    cout << "   3] Slot 3" << endl;
+    cout << "   4] Slot 4" << endl;
+    cout << "   5] Slot 5" << endl;
+    cout << "" << endl;
+    int choice;
+    string choosedSlot = "";
+    cout << " ==> ";
+    cin >> choice;
+
+    if(choice >= 1 && choice <=5) // If the entered number correspond to a slot
+    {
+        return choice;
+    } else { // If it doesn't
+        printSpace(5); // Print some empty space
+        SetConsoleTextAttribute(output,FOREGROUND_RED|FOREGROUND_INTENSITY); // Set text color red
+        cout << "========[ Please choose one of the available options ]========" << endl;
+        chooseSlot(); // Restart the function to get a valid input
+    }
+}
+
+// This function is used to print empty space
+int printSpace(int num)
+{
+    for(int c = 0; c < num; c++)
+    {
+        cout << "" << endl;
+    }
+}
+
+// This function is used to print info about the program
+int showCredit()
+{
+    int choice;
+    printSpace(5);
+    SetConsoleTextAttribute(output,FOREGROUND_GREEN|FOREGROUND_INTENSITY); // Set text color green
+
+    cout << "|==============[ T.W.O.M SAVE MANAGER CREDIT ]==============|" << endl;
+    cout << "| Option 1 of the main menu allows you to choose a slot and |" << endl;
+    cout << "| load the saved files in that slot in to the game.         |" << endl;
+    cout << "| Option 2 of the main menu allows you to choose a slot and |" << endl;
+    cout << "| save the files that are in the game folder into the slot. |" << endl;
+    cout << "| Option number 3 show this message and option 4 quit the   |" << endl;
+    cout << "| program. You can use this program for personal or educat- |" << endl;
+    cout << "| -ional purpose, be aware that the program might not work  |" << endl;
+    cout << "| with all the version of the game.   [Press 1 to go back.] |" << endl;
+    cout << "|                    Programmed by RAVEN                    |" << endl;
+    cout << "|===========================================================|" << endl;
+    cout << "" << endl;
+    cout << " ==> ";
+    cin >> choice;
+    if(choice == 1) // Go back to main
+    {
+        main();
+    } else if(choice != 1) // Write error message
+    {
+        printSpace(5);
+        SetConsoleTextAttribute(output,FOREGROUND_RED|FOREGROUND_INTENSITY); // Set text color red
+        cout << "========[ Please press 1 to go back ]========" << endl;
+        cout << "" << endl;
+        showCredit();
+    }
+}
+
+// This function delete the current save that is in the game folder
+int deleteOriginalFiles()
+{
+    string gameFolderPath = "";
+    gameFolderPath = getGameFolderPath(); // Get game folder path
+
+    if(gameFolderPath != "") // If the function has find the game folder path
+    {
+        for(int c = 0; c < 8; c++) // delete all the current files in the save game folder
+        {
+            string fileToDelete = gameFolderPath + "\\" + fileList[c];
+            remove(fileToDelete.c_str()); // Delete file
+        }
+    } else { // Else display error message
+        cout << "" << endl;
+        SetConsoleTextAttribute(output,FOREGROUND_RED|FOREGROUND_INTENSITY); // Set text color red
+        cout << "    Cannot find a configuration file." << endl;
+        SetConsoleTextAttribute(output, FOREGROUND_GREEN|FOREGROUND_INTENSITY); // Set text color green
+        printSpace(5);
+        main();
+    }
+}
+
+// This function delete the current save that is in the selected slot and return the selected slot path
+string deleteSlotFile(int choosedSlot)
+{
+    string slotPath = getProgramDirectory();
+    slotPath += "\\Slot"; // Create the selected slot path
+
+    switch(choosedSlot) // Select the right path
+    {
+    case 1: // Load slot 1 files in to the game
+        slotPath += " 1";
+        break;
+    case 2: // Load slot 2 files in to the game
+        slotPath += " 2";
+        break;
+    case 3: // Load slot 3 files in to the game
+        slotPath += " 3";
+        break;
+    case 4: // Load slot 4 files in to the game
+        slotPath += " 4";
+        break;
+    case 5: // Load slot 5 files in to the game
+        slotPath += " 5";
+        break;
+    }
+
+    for(int c = 0; c < 8; c++) // Delete the files in the selected slot
+    {
+        string fileToDelete = slotPath + "\\" + fileList[c];
+        remove(fileToDelete.c_str()); // Delete file
+    }
+    return slotPath;
+}
+
+// This function return the directory where the program is running, in this way i can access easily to the slot's
+// folder and the twom-SaveManager.config file
+string getProgramDirectory()
+{
+    char buffer[MAX_PATH];
+    GetModuleFileName(NULL, buffer, MAX_PATH); // Get the directory where the program is
+    string::size_type pos = string( buffer ).find_last_of( "\\/" );
+    string programPath = string( buffer ).substr(0, pos);
+
+    return programPath;
+}
+
+// This function will open , if it exist, the twom-SaveManager.config file, read the data from it and
+// return the game folder path
+string getGameFolderPath()
+{
+    string gameFolderPath;
+    string configPath = getProgramDirectory(); // Get the directory where the program is
+    configPath += "\\twom-SaveManager.config"; // Create the path of the twom-SaveManager.config file
+
+    ifstream configFile; // Open twom-SaveManager.config to get the game folder path
+    configFile.open(configPath.c_str(), ios::in);
+
+    if(configFile.is_open()) // if twom-SaveManager.config file is open
+    {
+        getline(configFile, gameFolderPath); // Get game folder path
+        configFile.close(); // Close file
+        return gameFolderPath; // return the game folder path
+    } else { // If twom-SaveManager is not open display error message
+        cout << "" << endl;
+        SetConsoleTextAttribute(output,FOREGROUND_RED|FOREGROUND_INTENSITY); // Set text color red
+        cout << "    Cannot find a configuration file." << endl;
+        SetConsoleTextAttribute(output, FOREGROUND_GREEN|FOREGROUND_INTENSITY); // Set text color green
+        printSpace(5);
+        main();
+    }
+}
