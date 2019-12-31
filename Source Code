@@ -9,7 +9,7 @@ HANDLE output = GetStdHandle(STD_OUTPUT_HANDLE);
 
 using namespace std;
 
-// Global fileList contains the name of all the file that This War OF Mine use to store the save game data
+// Global fileList contains the name of all the file that This War of Mine use to store the save game data
 string fileList[] {"achievements", "achievements.alt", "gamehistory", "gamehistory.alt", "gamelog", "gamelog.alt", "savedgames", "savedgames.alt"};
 
 // Function prototype
@@ -52,7 +52,7 @@ int main()
         choosedSlot = chooseSlot();
         loadSavedFile(choosedSlot);
         break;
-    case 2: // Make backup from the "========[game saves folder
+    case 2: // Make backup from the game saves folder
         choosedSlot = chooseSlot();
         makeBackup(choosedSlot);
         break;
